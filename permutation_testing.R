@@ -46,6 +46,7 @@ mean_permuter <- function(dat, group, dv, nperms = 1000, alpha = .05){
 ##' @param y Second variable in correlation calculation.
 ##' @param nperms Number of permutation replications. Defaults to 1000.
 ##' @param alpha Type I error rate. Defaults to .05.
+##' @return Results of permutation test, including a statement of what the rejection decision should be.
 ##' @examples
 ##' n <- 100
 ##' x <- rnorm(n)
@@ -73,3 +74,44 @@ cor_permuter <- function(dat, x, y, nperms = 1000, alpha = .05){
 }
 
 
+
+
+##' Checks to determine if categorical variables have equal response categories observed across groups
+##'
+##' @param dat Data frame with grouping variable and categorical variables
+##' @param group Grouping variable
+##' @param catvars Vector of categorical variable names
+##' @examples
+##' n <- 100
+##' x <- c(rep(1, n/4), rep(2, n/4), rep(3, n/4), rep(4, n/4))
+##' y1 <- rbinom(n, 1, .2)
+##' y2 <- rbinom(n, 1, .5)
+##' dat <- data.frame(x, y1, y2)
+##' categoryCheck(dat, "x", c("y1", "y2"))
+##' @return TRUE or FALSE to indicate if all response categories are equal across groups.
+##' @author Ben Kite
+categoryCheck <- function(dat, group, catvars){
+    groups <- as.character(unique(dat[,group]))
+    unilist <- list()
+    for (u in groups){
+        tmpdat <- dat[which(dat[,group] == u),]
+        unilist[[as.character(u)]] <- apply(tmpdat[,catvars], 2, function(x) sort(unique(x)))
+    }
+    differences <- matrix(NA, length(groups), length(groups))
+    colnames(differences) <- groups
+    rownames(differences) <- groups
+    for (i in groups){
+        for (j in groups){
+            differences[i, j] <- identical(unilist[[i]], unilist[[j]])
+        }
+    }
+    if(prod(differences) == 1){
+        return(TRUE)
+    } else {
+        mismatches <- which(!differences, arr.ind = TRUE)
+        for (m in 1:nrow(mismatches)){
+            print(paste0("The categories are different between groups ", mismatches[m,1], " and ", mismatches[m,2]))
+        }
+        return(FALSE)
+    }
+}
